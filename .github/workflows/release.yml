@@ -9,9 +9,6 @@ on:
 
 permissions:
   contents: write
-  attestations: write
-  id-token: write
-  packages: read
 
 jobs:
   build:
@@ -22,16 +19,19 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
             artifact_suffix: linux-x86_64.tar.gz
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            artifact_suffix: linux-arm64.tar.gz
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact_suffix: macos-x86_64.tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_suffix: macos-arm64.tar.gz
-          - os: windows-latest
-            target: x86_64-pc-windows-gnu
+          - os: ubuntu-latest
+            target: x86_64-pc-windows-msvc
             artifact_suffix: windows-x86_64.zip
 
     steps:
@@ -40,11 +40,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
+
+      - name: Install xwin (for Windows)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        run: cargo install cargo-xwin && cargo xwin setup
 
       - name: Build release
         run: |
-          cargo build --release --target ${{ matrix.target }}
+          if [ "${{ matrix.target }}" = "x86_64-pc-windows-msvc" ]; then
+            cargo xwin build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 
       - name: Create artifact
         if: matrix.os != 'windows-latest'
@@ -54,12 +62,7 @@ jobs:
           tar -czvf rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} rmduprs-dist
 
       - name: Create artifact (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          7z a rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} target\${{ matrix.target }}\release\rmduprs.exe
-
-      - name: Create artifact (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.target == 'x86_64-pc-windows-msvc'
         run: |
           7z a rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} target\${{ matrix.target }}\release\rmduprs.exe
 
@@ -73,7 +76,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }}
+          files: rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
