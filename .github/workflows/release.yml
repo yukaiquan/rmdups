@@ -9,10 +9,20 @@ on:
 
 permissions:
   contents: write
+  attestations: write
+  id-token: write
+  pull-requests: write
+  release: write
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+      pull-requests: write
+      release: write
 
     strategy:
       fail-fast: false
