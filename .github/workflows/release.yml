@@ -12,7 +12,6 @@ permissions:
   attestations: write
   id-token: write
   pull-requests: write
-  release: write
 
 jobs:
   build:
@@ -22,7 +21,6 @@ jobs:
       attestations: write
       id-token: write
       pull-requests: write
-      release: write
 
     strategy:
       fail-fast: false
