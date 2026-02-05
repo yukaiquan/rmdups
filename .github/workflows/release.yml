@@ -7,9 +7,17 @@ on:
   release:
     types: [created]
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
 
     strategy:
       fail-fast: false
