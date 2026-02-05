@@ -24,12 +24,6 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_suffix: linux-x86_64.tar.gz
-            strips: 1
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact_suffix: linux-arm64.tar.gz
-            strips: 1
-            install-target: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact_suffix: macos-x86_64.tar.gz
@@ -39,7 +33,6 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-gnu
             artifact_suffix: windows-x86_64.zip
-            strips: 0
 
     steps:
       - uses: actions/checkout@v4
@@ -49,29 +42,21 @@ jobs:
         with:
           target: ${{ matrix.target }}
 
-      - name: Install cross-compile tools
-        if: matrix.install-target != ''
-        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.install-target }}
-
       - name: Build release
         run: |
           cargo build --release --target ${{ matrix.target }}
 
       - name: Create artifact
-        if: matrix.os != 'windows-latest' && matrix.target != 'aarch64-apple-darwin' && matrix.target != 'x86_64-apple-darwin'
+        if: matrix.os != 'windows-latest'
         run: |
-          tar -czvf rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} \
-            -C target/${{ matrix.target }}/release \
-            --transform 's/^rmduprs/rmduprs/' \
-            rmduprs
+          mkdir -p rmduprs-dist
+          cp target/${{ matrix.target }}/release/rmduprs rmduprs-dist/
+          tar -czvf rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} rmduprs-dist
 
-      - name: Create artifact (macOS)
-        if: matrix.target == 'aarch64-apple-darwin' || matrix.target == 'x86_64-apple-darwin'
+      - name: Create artifact (Windows)
+        if: matrix.os == 'windows-latest'
         run: |
-          cd target/${{ matrix.target }}/release
-          mkdir -p rmduprs
-          cp rmduprs rmduprs/
-          tar -czvf ../../../../rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} rmduprs
+          7z a rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} target\${{ matrix.target }}\release\rmduprs.exe
 
       - name: Create artifact (Windows)
         if: matrix.os == 'windows-latest'
