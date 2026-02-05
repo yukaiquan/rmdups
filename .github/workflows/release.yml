@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_suffix: linux-x86_64.tar.gz
+            strips: 1
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_suffix: linux-arm64.tar.gz
+            strips: 1
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_suffix: macos-x86_64.tar.gz
+            strips: 1
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_suffix: macos-arm64.tar.gz
+            strips: 1
+          - os: windows-latest
+            target: x86_64-pc-windows-gnu
+            artifact_suffix: windows-x86_64.zip
+            strips: 0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+
+      - name: Build release
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Create artifact
+        if: matrix.os != 'windows-latest'
+        run: |
+          tar -czvf rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} \
+            -C target/${{ matrix.target }}/release \
+            --transform 's/^rmduprs/rmduprs/' \
+            rmduprs
+
+      - name: Create artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          7z a rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }} target\${{ matrix.target }}\release\rmduprs.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmduprs-${{ matrix.target }}
+          path: rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }}
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            rmduprs-${{ matrix.target }}-${{ github.ref_name }}-${{ matrix.artifact_suffix }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
