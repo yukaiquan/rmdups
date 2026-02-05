@@ -8,16 +8,14 @@ on:
     types: [created]
 
 permissions:
-  contents: read
+  contents: write
+  attestations: write
+  id-token: write
   packages: read
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
-      attestations: write
-      id-token: write
 
     strategy:
       fail-fast: false
