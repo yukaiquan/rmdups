@@ -37,7 +37,7 @@ jobs:
             target: aarch64-apple-darwin
             artifact_suffix: macos-arm64.tar.gz
           - os: ubuntu-latest
-            target: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-msvc
             artifact_suffix: windows-x86_64.zip
 
     steps:
@@ -49,11 +49,15 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install musl tools (Linux)
-        if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-musl'
+        if: matrix.target == 'x86_64-unknown-linux-musl'
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
+      - name: Install mingw tools (Windows)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        run: cargo install cargo-xwin
+
       - name: Build release
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo xwin build --release --target ${{ matrix.target }}
 
       - name: Create artifact
         if: matrix.target != 'x86_64-pc-windows-msvc'
