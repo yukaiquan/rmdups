@@ -57,7 +57,12 @@ jobs:
         run: cargo install cargo-xwin
 
       - name: Build release
+        if: matrix.target == 'x86_64-pc-windows-msvc'
         run: cargo xwin build --release --target ${{ matrix.target }}
+
+      - name: Build release
+        if: matrix.target != 'x86_64-pc-windows-msvc'
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Create artifact
         if: matrix.target != 'x86_64-pc-windows-msvc'
